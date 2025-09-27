@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Registro de Usuarios</title>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        h2 {
+            color: #444;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .secondary-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        #chartContainer {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+
+        .success-message {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .stats {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats h3 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Página Principal -->
+        <div id="homePage" class="page active">
+            <h1>Sistema de Registro de Usuarios</h1>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">
+                Bienvenido al sistema de gestión de usuarios
+            </p>
+            <div class="menu">
+                <button onclick="navegarA('captura')">
+                    📝 Captura de Datos
+                </button>
+                <button onclick="navegarA('grafico')" class="secondary-btn">
+                    📊 Gráfico de Registros por País
+                </button>
+            </div>
+        </div>
+
+        <!-- Página de Captura de Datos -->
+        <div id="capturaPage" class="page">
+            <h1>Registro de Usuario</h1>
+            <form id="formUsuario">
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="apellidos">Apellidos:</label>
+                    <input type="text" id="apellidos" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="identificacion">Identificación:</label>
+                    <input type="text" id="identificacion" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="pais">País:</label>
+                    <select id="pais" required>
+                        <option value="">Seleccione un país</option>
+                        <option value="España">España</option>
+                        <option value="México">México</option>
+                        <option value="Argentina">Argentina</option>
+                        <option value="Colombia">Colombia</option>
+                        <option value="Estados Unidos">Estados Unidos</option>
+                        <option value="Chile">Chile</option>
+                        <option value="Perú">Perú</option>
+                        <option value="Venezuela">Venezuela</option>
+                        <option value="Brasil">Brasil</option>
+                        <option value="Uruguay">Uruguay</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit">💾 Guardar</button>
+                    <button type="button" onclick="navegarA('home')" class="secondary-btn">
+                        🏠 Regresar
+                    </button>
+                </div>
+            </form>
+            <div id="successMessage" class="success-message">
+                ✅ Usuario registrado exitosamente
+            </div>
+        </div>
+
+        <!-- Página de Gráfico -->
+        <div id="graficoPage" class="page">
+            <h1>Registros por País</h1>
+            <div id="stats" class="stats">
+                <h3>Total de Registros: <span id="totalRegistros">0</span></h3>
+            </div>
+            <div id="loadingChart" class="loading" style="display: none;">
+                Cargando datos...
+            </div>
+            <div id="chartContainer">
+                <canvas id="myChart"></canvas>
+            </div>
+            <div class="button-group">
+                <button onclick="navegarA('home')" class="secondary-btn">
+                    🏠 Regresar
+                </button>
+                <button onclick="cargarGrafico()">
+                    🔄 Actualizar Gráfico
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Supabase - REEMPLAZA CON TUS CREDENCIALES
+        const SUPABASE_URL = 'https://hmxtseuhfznkmgqeerqx.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhteHRzZXVoZnpua21ncWVlcnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTAyNTEsImV4cCI6MjA3MzEyNjI1MX0.aPuORhfuW0UqYugIV966B3SvcTmrqSvX1-GBaS59FUs';
+
+        // Inicializar cliente Supabase
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let chartInstance = null;
+
+        // Navegación entre páginas
+        function navegarA(pagina) {
+            // Ocultar todas las páginas
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+            // Mostrar la página seleccionada
+            switch(pagina) {
+                case 'home':
+                    document.getElementById('homePage').classList.add('active');
+                    break;
+                case 'captura':
+                    document.getElementById('capturaPage').classList.add('active');
+                    limpiarFormulario();
+                    break;
+                case 'grafico':
+                    document.getElementById('graficoPage').classList.add('active');
+                    cargarGrafico();
+                    break;
+            }
+        }
+
+        // Limpiar formulario
+        function limpiarFormulario() {
+            document.getElementById('formUsuario').reset();
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // Manejar envío del formulario
+        document.getElementById('formUsuario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Obtener datos del formulario
+            const nombre = document.getElementById('nombre').value;
+            const apellidos = document.getElementById('apellidos').value;
+            const identificacion = document.getElementById('identificacion').value;
+            const pais = document.getElementById('pais').value;
+
+            // Obtener fecha, hora y zona horaria actuales
+            const ahora = new Date();
+            const fecha = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+            const hora = ahora.toTimeString().split(' ')[0]; // HH:MM:SS
+            const zonaHoraria = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+            // Preparar datos para insertar
+            const datosUsuario = {
+                nombre: nombre,
+                apellidos: apellidos,
+                identificacion: identificacion,
+                pais: pais,
+                fecha_registro: fecha,
+                hora_registro: hora,
+                zona_horaria: zonaHoraria
+            };
+
+            try {
+                // Insertar datos en Supabase
+                const { data, error } = await supabaseClient
+                    .from('usuarios')
+                    .insert([datosUsuario]);
+
+                if (error) {
+                    throw error;
+                }
+
+                // Mostrar mensaje de éxito
+                document.getElementById('successMessage').style.display = 'block';
+
+                // Limpiar formulario después de 2 segundos
+                setTimeout(() => {
+                    limpiarFormulario();
+                }, 2000);
+
+            } catch (error) {
+                alert('Error al guardar: ' + error.message);
+                console.error('Error:', error);
+            }
+        });
+
+        // Cargar y mostrar gráfico
+        async function cargarGrafico() {
+            const loadingElement = document.getElementById('loadingChart');
+            loadingElement.style.display = 'block';
+
+            try {
+                // Obtener todos los registros de la base de datos
+                const { data, error } = await supabaseClient
+                    .from('usuarios')
+                    .select('pais');
+
+                if (error) {
+                    throw error;
+                }
+
+                // Agrupar y contar por país
+                const conteoPorPais = {};
+                data.forEach(registro => {
+                    if (registro.pais) {
+                        conteoPorPais[registro.pais] = (conteoPorPais[registro.pais] || 0) + 1;
+                    }
+                });
+
+                // Preparar datos para el gráfico
+                const paises = Object.keys(conteoPorPais);
+                const cantidades = Object.values(conteoPorPais);
+
+                // Actualizar total de registros
+                const totalRegistros = cantidades.reduce((a, b) => a + b, 0);
+                document.getElementById('totalRegistros').textContent = totalRegistros;
+
+                // Destruir gráfico existente si hay uno
+                if (chartInstance) {
+                    chartInstance.destroy();
+                }
+
+                // Crear nuevo gráfico
+                const ctx = document.getElementById('myChart').getContext('2d');
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: paises,
+                        datasets: [{
+                            label: 'Número de Registros',
+                            data: cantidades,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                                'rgba(255, 159, 64, 0.6)',
+                                'rgba(199, 199, 199, 0.6)',
+                                'rgba(83, 102, 255, 0.6)',
+                                'rgba(255, 99, 255, 0.6)',
+                                'rgba(99, 255, 132, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(199, 199, 199, 1)',
+                                'rgba(83, 102, 255, 1)',
+                                'rgba(255, 99, 255, 1)',
+                                'rgba(99, 255, 132, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Distribución de Usuarios por País',
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                });
+
+                loadingElement.style.display = 'none';
+
+            } catch (error) {
+                loadingElement.style.display = 'none';
+                alert('Error al cargar gráfico: ' + error.message);
+                console.error('Error:', error);
+            }
+        }
+
+        // Manejar navegación con botón atrás del navegador
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                navegarA(hash);
+            }
+        });
+
+        // Cargar página inicial según el hash
+        if (window.location.hash) {
+            navegarA(window.location.hash.substring(1));
+        }
+    </script>
+</body>
+</html>
