@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Registro de Usuarios</title>
 
+    <!-- Configuración -->
+    <script src="config.js"></script>
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Chart.js -->
@@ -196,17 +198,7 @@
                 <div class="form-group">
                     <label for="pais">País:</label>
                     <select id="pais" required>
-                        <option value="">Seleccione un país</option>
-                        <option value="España">España</option>
-                        <option value="México">México</option>
-                        <option value="Argentina">Argentina</option>
-                        <option value="Colombia">Colombia</option>
-                        <option value="Estados Unidos">Estados Unidos</option>
-                        <option value="Chile">Chile</option>
-                        <option value="Perú">Perú</option>
-                        <option value="Venezuela">Venezuela</option>
-                        <option value="Brasil">Brasil</option>
-                        <option value="Uruguay">Uruguay</option>
+                        <option value="">Cargando países...</option>
                     </select>
                 </div>
 
@@ -246,15 +238,57 @@
     </div>
 
     <script>
-        // Configuración de Supabase - REEMPLAZA CON TUS CREDENCIALES
-        //const SUPABASE_URL = 'https://hmxtseuhfznkmgqeerqx.supabase.co';
-        //const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhteHRzZXVoZnpua21ncWVlcnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTAyNTEsImV4cCI6MjA3MzEyNjI1MX0.aPuORhfuW0UqYugIV966B3SvcTmrqSvX1-GBaS59FUs';
+        // Configuración de Supabase
+        // Para Azure Static Web Apps, estas variables se inyectan durante el build
+        // o puedes usar un archivo de configuración separado
+        const SUPABASE_URL = window.SUPABASE_URL || 'https://hmxtseuhfznkmgqeerqx.supabase.co';
+        const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhteHRzZXVoZnpua21ncWVlcnF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1NTAyNTEsImV4cCI6MjA3MzEyNjI1MX0.aPuORhfuW0UqYugIV966B3SvcTmrqSvX1-GBaS59FUs';
 
         // Inicializar cliente Supabase
-        const { createClient } = supabase;
-        const supabaseClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+        let supabaseClient;
+
+        try {
+            const { createClient } = supabase;
+            supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch (error) {
+            console.error('Error al inicializar Supabase:', error);
+            alert('Error al conectar con la base de datos. Por favor, verifica la configuración.');
+        }
 
         let chartInstance = null;
+        let paisesData = [];
+
+        // Cargar países desde la base de datos
+        async function cargarPaises() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('paises')
+                    .select('id, nombre, codigo_iso2')
+                    .eq('activo', true)
+                    .order('orden', { ascending: true });
+
+                if (error) {
+                    throw error;
+                }
+
+                paisesData = data;
+                const selectPais = document.getElementById('pais');
+                selectPais.innerHTML = '<option value="">Seleccione un país</option>';
+
+                data.forEach(pais => {
+                    const option = document.createElement('option');
+                    option.value = pais.id;
+                    option.textContent = pais.nombre;
+                    option.dataset.nombre = pais.nombre;
+                    selectPais.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error('Error al cargar países:', error);
+                const selectPais = document.getElementById('pais');
+                selectPais.innerHTML = '<option value="">Error al cargar países</option>';
+            }
+        }
 
         // Navegación entre páginas
         function navegarA(pagina) {
@@ -269,6 +303,7 @@
                 case 'captura':
                     document.getElementById('capturaPage').classList.add('active');
                     limpiarFormulario();
+                    cargarPaises(); // Cargar países cuando se abre el formulario
                     break;
                 case 'grafico':
                     document.getElementById('graficoPage').classList.add('active');
@@ -291,7 +326,9 @@
             const nombre = document.getElementById('nombre').value;
             const apellidos = document.getElementById('apellidos').value;
             const identificacion = document.getElementById('identificacion').value;
-            const pais = document.getElementById('pais').value;
+            const paisSelect = document.getElementById('pais');
+            const paisId = paisSelect.value;
+            const paisNombre = paisSelect.options[paisSelect.selectedIndex].dataset.nombre;
 
             // Obtener fecha, hora y zona horaria actuales
             const ahora = new Date();
@@ -304,7 +341,8 @@
                 nombre: nombre,
                 apellidos: apellidos,
                 identificacion: identificacion,
-                pais: pais,
+                pais: paisNombre, // Mantener compatibilidad con la columna pais
+                pais_id: parseInt(paisId), // Nuevo: guardar el ID del país
                 fecha_registro: fecha,
                 hora_registro: hora,
                 zona_horaria: zonaHoraria
@@ -340,10 +378,16 @@
             loadingElement.style.display = 'block';
 
             try {
-                // Obtener todos los registros de la base de datos
+                // Obtener todos los registros con información del país
                 const { data, error } = await supabaseClient
                     .from('usuarios')
-                    .select('pais');
+                    .select(`
+                        pais,
+                        pais_id,
+                        paises!fk_usuarios_pais (
+                            nombre
+                        )
+                    `);
 
                 if (error) {
                     throw error;
@@ -352,8 +396,10 @@
                 // Agrupar y contar por país
                 const conteoPorPais = {};
                 data.forEach(registro => {
-                    if (registro.pais) {
-                        conteoPorPais[registro.pais] = (conteoPorPais[registro.pais] || 0) + 1;
+                    // Usar el nombre del país desde la relación o el campo pais como fallback
+                    const nombrePais = registro.paises?.nombre || registro.pais;
+                    if (nombrePais) {
+                        conteoPorPais[nombrePais] = (conteoPorPais[nombrePais] || 0) + 1;
                     }
                 });
 
@@ -448,6 +494,11 @@
             if (hash) {
                 navegarA(hash);
             }
+        });
+
+        // Cargar países al iniciar la aplicación
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarPaises();
         });
 
         // Cargar página inicial según el hash
